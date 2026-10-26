@@ -1,133 +1,350 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Пельмень-кликер</title>
+<title>Fire Point — FPV-клікер</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
-  --bg:#F3EEFA; --surface:#FFFFFF; --ink:#2B1B3D; --muted:#6F5E85;
-  --accent:#FFB627; --accent-ink:#2B1B3D; --pink:#E85D75; --line:#DCD2EC;
+  --bg:#EEF1F6;--surface:#FFFFFF;--ink:#14213A;--muted:#5B6B86;--accent:#FFB000;--accent-ink:#14213A;
+  --blue:#1F5FBF;--line:#D3DBE8;--ok:#1C8C4E;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#1D1229; --surface:#2B1B3D; --ink:#F6EFFF; --muted:#B3A2CC;
-    --accent:#FFC857; --accent-ink:#1D1229; --pink:#FF7B93; --line:#44305E;
-    color-scheme:dark;
+    --bg:#0E1626;--surface:#17233A;--ink:#EAF0FB;--muted:#93A4C2;--accent:#FFB84D;--accent-ink:#0E1626;
+    --blue:#5B9BFF;--line:#2A3B5C;--ok:#4CD08A;color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#1D1229; --surface:#2B1B3D; --ink:#F6EFFF; --muted:#B3A2CC;
-  --accent:#FFC857; --accent-ink:#1D1229; --pink:#FF7B93; --line:#44305E;
-  color-scheme:dark;
+  --bg:#0E1626;--surface:#17233A;--ink:#EAF0FB;--muted:#93A4C2;--accent:#FFB84D;--accent-ink:#0E1626;
+  --blue:#5B9BFF;--line:#2A3B5C;--ok:#4CD08A;color-scheme:dark;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;
-  min-height:100vh;display:flex;justify-content:center;user-select:none;-webkit-user-select:none}
-main{width:100%;max-width:480px;padding:16px 16px 32px}
-.top{text-align:center;padding-top:8px}
-.score{font-size:56px;font-weight:900;line-height:1;margin:0;font-variant-numeric:tabular-nums}
-.sub{margin:6px 0 0;color:var(--muted);font-size:15px}
-.stage{position:relative;height:300px;display:flex;align-items:center;justify-content:center}
-#tap{width:240px;height:240px;border-radius:50%;border:0;background:var(--accent);
-  font-size:128px;line-height:1;cursor:pointer;box-shadow:0 10px 0 var(--pink);
-  transition:transform .08s,box-shadow .08s;padding:0}
-#tap:active,#tap.hit{transform:translateY(8px) scale(.97);box-shadow:0 2px 0 var(--pink)}
-#tap:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
-.pop{position:absolute;font-weight:900;font-size:26px;color:var(--pink);pointer-events:none;
-  animation:up .8s ease-out forwards}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Rubik","Trebuchet MS",system-ui,sans-serif;
+  min-height:100vh;display:flex;justify-content:center;-webkit-user-select:none;user-select:none}
+main{width:100%;max-width:480px;padding:14px 14px 40px}
+.top{text-align:center}
+.brand{font-weight:800;font-size:20px;letter-spacing:.02em;color:var(--blue)}
+.score{font-size:52px;font-weight:800;line-height:1.05;margin:4px 0 0;font-variant-numeric:tabular-nums}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+#buff{min-height:20px;margin:4px 0 0;font-weight:700;color:var(--accent)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:4px;margin:8px 0 6px}
+.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:14px;padding:9px 4px;border-radius:10px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs button:focus-visible,#tap:focus-visible,.up:focus-visible,.amt button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.stage{position:relative;height:280px;display:flex;align-items:center;justify-content:center}
+#tap{width:230px;height:230px;border-radius:50%;border:0;background:var(--accent);cursor:pointer;
+  box-shadow:0 9px 0 var(--blue);transition:transform .08s,box-shadow .08s;padding:0;display:flex;align-items:center;justify-content:center}
+#tap:active{transform:translateY(7px) scale(.97);box-shadow:0 2px 0 var(--blue)}
+.bl{transform-box:fill-box;transform-origin:center}
+#tap.fly .bl{animation:spin .2s linear 3}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pop{position:absolute;font-weight:800;font-size:24px;color:var(--blue);pointer-events:none;animation:up .8s ease-out forwards}
 @keyframes up{to{transform:translateY(-90px);opacity:0}}
-h2{font-size:18px;margin:8px 0 10px}
-.list{display:grid;gap:10px}
-.up{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;width:100%;
-  text-align:left;background:var(--surface);color:var(--ink);border:2px solid var(--line);
-  border-radius:16px;padding:12px;font:inherit;cursor:pointer}
-.up .ic{font-size:32px;text-align:center}
-.up b{display:block;font-size:16px}
-.up small{color:var(--muted);font-size:13px}
-.up .cost{font-weight:800;font-size:15px;background:var(--accent);color:var(--accent-ink);
-  border-radius:12px;padding:6px 10px;white-space:nowrap}
-.up:disabled{opacity:.5;cursor:default}
+#gold{position:absolute;width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:#FFD54A;font-size:32px;cursor:pointer;
+  animation:glow 1s ease-in-out infinite alternate;padding:0}
+@keyframes glow{to{box-shadow:0 0 0 10px rgba(255,176,0,.35)}}
+h2,h3{font-size:16px;margin:14px 0 8px}
+.amt{display:flex;gap:6px;align-items:center;margin:14px 0 8px}
+.amt h2{margin:0 auto 0 0}
+.amt button{border:2px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;border-radius:10px;padding:5px 12px;cursor:pointer}
+.amt button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.list{display:grid;gap:8px}
+.up{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);
+  color:var(--ink);border:2px solid var(--line);border-radius:14px;padding:10px;font:inherit;cursor:pointer}
+.up .ic{font-size:28px;text-align:center}
+.up b{display:block;font-size:15px}
+.up small{color:var(--muted);font-size:12.5px}
+.up .cost{font-weight:700;font-size:14px;background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:6px 9px;white-space:nowrap}
+.up:disabled{opacity:.55;cursor:default}
 .up:disabled .cost{background:var(--line);color:var(--muted)}
-.up:not(:disabled):active{transform:scale(.98)}
-.up:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-.foot{display:flex;justify-content:center;margin-top:18px}
-.reset{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
-@media (prefers-reduced-motion:reduce){.pop{animation-duration:.01s}#tap{transition:none}}
+.more{margin:0;text-align:center;color:var(--muted);font-size:13px}
+.ach{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:10px;margin-bottom:8px}
+.ach.done{border-color:var(--ok)}
+.at b{display:block;font-size:15px}
+.at small,.pv{color:var(--muted);font-size:12.5px}
+.bar{height:8px;background:var(--line);border-radius:4px;margin:8px 0 4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue)}
+.ach.done .bar i{background:var(--ok)}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;font-size:14.5px;line-height:1.5}
+.card p{margin:0 0 8px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:4px 0}
+.big{font-weight:800;font-size:22px}
+.btn{width:100%;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:700;font-size:16px;padding:14px;cursor:pointer}
+.btn:disabled{background:var(--line);color:var(--muted);cursor:default}
+.btn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.reset{display:block;margin:20px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:90%;text-align:center;z-index:5}
+@media (prefers-reduced-motion:reduce){.pop,#gold,#tap.fly .bl{animation:none}#tap{transition:none}}
 </style>
 </head>
 <body>
 <main>
   <div class="top">
+    <div class="brand">Fire Point</div>
     <p class="score" id="score">0</p>
-    <p class="sub"><span id="cps">0</span> пельменей в секунду · <span id="cpt">1</span> за тап</p>
+    <p class="sub"><span id="cps">0</span> дронів/с · <span id="cpt">1</span> за тап</p>
+    <p id="buff"></p>
   </div>
-  <div class="stage" id="stage">
-    <button id="tap" aria-label="Лепить пельмень">🥟</button>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-game" aria-selected="true">Гра</button>
+    <button role="tab" id="tab-ach" aria-selected="false">Досягнення</button>
+    <button role="tab" id="tab-pres" aria-selected="false">Контракти</button>
   </div>
-  <h2>Улучшения</h2>
-  <div class="list" id="list"></div>
-  <div class="foot"><button class="reset" id="reset">Начать заново</button></div>
+
+  <section id="v-game">
+    <div class="stage" id="stage">
+      <button id="tap" aria-label="Зібрати дрон">
+        <svg viewBox="0 0 200 200" width="170" height="170" aria-hidden="true">
+          <g stroke="var(--ink)" stroke-width="7" stroke-linecap="round">
+            <line x1="100" y1="100" x2="40" y2="40"/><line x1="100" y1="100" x2="160" y2="40"/>
+            <line x1="100" y1="100" x2="40" y2="160"/><line x1="100" y1="100" x2="160" y2="160"/>
+          </g>
+          <g fill="var(--ink)">
+            <g transform="translate(40 40)"><g class="bl"><rect x="-28" y="-4" width="56" height="8" rx="4"/></g></g>
+            <g transform="translate(160 40)"><g class="bl"><rect x="-28" y="-4" width="56" height="8" rx="4"/></g></g>
+            <g transform="translate(40 160)"><g class="bl"><rect x="-28" y="-4" width="56" height="8" rx="4"/></g></g>
+            <g transform="translate(160 160)"><g class="bl"><rect x="-28" y="-4" width="56" height="8" rx="4"/></g></g>
+          </g>
+          <rect x="70" y="78" width="60" height="44" rx="12" fill="var(--blue)"/>
+          <circle cx="100" cy="126" r="9" fill="var(--bg)" stroke="var(--ink)" stroke-width="4"/>
+          <circle cx="100" cy="98" r="5" fill="var(--accent)"/>
+        </svg>
+      </button>
+      <button id="gold" hidden aria-label="Золотий дрон: забрати бонус">🚁</button>
+    </div>
+    <div id="uh"><h2>Покращення</h2><div class="list" id="ul"></div></div>
+    <div class="amt"><h2>Цехи</h2>
+      <button data-amt="1" aria-pressed="true">×1</button><button data-amt="10" aria-pressed="false">×10</button><button data-amt="100" aria-pressed="false">×100</button>
+    </div>
+    <div class="list" id="bl"></div>
+    <button class="reset" id="reset">Почати заново</button>
+  </section>
+
+  <section id="v-ach" hidden></section>
+
+  <section id="v-pres" hidden>
+    <div class="card">
+      <p>Підпишіть нові державні контракти: цехи й покращення скинуться, а ви отримаєте контракти. Кожен контракт назавжди дає +2% до всього виробництва. Досягнення зберігаються.</p>
+    </div>
+    <div class="card">
+      <div class="row"><span>Дронів за цей забіг</span><b id="pr-run">0</b></div>
+      <div class="row"><span>Контрактів у вас</span><b id="pr-con">0</b></div>
+      <div class="row"><span>Бонус до виробництва</span><b id="pr-bonus">+0%</b></div>
+      <div class="row"><span>Скидань зроблено</span><b id="pr-n">0</b></div>
+    </div>
+    <div class="card">
+      <div class="row"><span>Нові контракти зараз</span><span class="big" id="pr-gain">0</span></div>
+      <p class="sub" id="pr-next"></p>
+    </div>
+    <button class="btn" id="pr-btn">Підписати контракти</button>
+  </section>
 </main>
+<div id="toast" hidden></div>
+
 <script>
 (function(){
-  var KEY="pelmen-clicker-v1";
-  var ITEMS=[
-    {id:"pin",ic:"🪵",name:"Скалка",desc:"+1 за тап",base:15,tap:1,cps:0},
-    {id:"gran",ic:"👵",name:"Бабушка",desc:"+1 в секунду",base:50,tap:0,cps:1},
-    {id:"pot",ic:"🍲",name:"Мультиварка",desc:"+6 в секунду",base:350,tap:0,cps:6},
-    {id:"shop",ic:"🏪",name:"Пельменная",desc:"+30 в секунду",base:2500,tap:0,cps:30},
-    {id:"fact",ic:"🏭",name:"Фабрика",desc:"+180 в секунду",base:18000,tap:0,cps:180}
-  ];
-  var S={score:0,own:{},t:Date.now()};
-  try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p.score==="number"){S=p;S.own=S.own||{};}}}catch(e){}
-  var $=function(id){return document.getElementById(id)};
-  function cost(it){return Math.floor(it.base*Math.pow(1.5,S.own[it.id]||0))}
-  function perTap(){var n=1;ITEMS.forEach(function(i){n+=i.tap*(S.own[i.id]||0)});return n}
-  function perSec(){var n=0;ITEMS.forEach(function(i){n+=i.cps*(S.own[i.id]||0)});return n}
-  function fmt(n){n=Math.floor(n);if(n>=1e9)return (n/1e9).toFixed(2)+" млрд";if(n>=1e6)return (n/1e6).toFixed(2)+" млн";return n.toLocaleString("ru-RU")}
-  function save(){try{S.t=Date.now();localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-  var list=$("list"),btns={};
-  ITEMS.forEach(function(it){
-    var b=document.createElement("button");b.className="up";
-    b.innerHTML='<span class="ic">'+it.ic+'</span><span><b>'+it.name+' <span class="n"></span></b><small>'+it.desc+'</small></span><span class="cost"></span>';
-    b.onclick=function(){var c=cost(it);if(S.score>=c){S.score-=c;S.own[it.id]=(S.own[it.id]||0)+1;render();save()}};
-    list.appendChild(b);btns[it.id]=b;
-  });
-  function render(){
-    $("score").textContent=fmt(S.score);
-    $("cps").textContent=fmt(perSec());$("cpt").textContent=fmt(perTap());
-    ITEMS.forEach(function(it){
-      var b=btns[it.id],c=cost(it),n=S.own[it.id]||0;
-      b.disabled=S.score<c;
-      b.querySelector(".cost").textContent=fmt(c);
-      b.querySelector(".n").textContent=n?"×"+n:"";
-    });
+var KEY="firepoint-clicker-v1";
+var $=function(i){return document.getElementById(i)};
+var tg=null;try{tg=window.Telegram&&Telegram.WebApp;if(tg){tg.ready();tg.expand()}}catch(e){tg=null}
+var S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now()};
+try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p.d==="number"){for(var k in p)S[k]=p[k]}}}catch(e){}
+var buffUntil=0,amt=1,view="game";
+
+// назва, іконка, базова ціна, дронів/с
+var B=[
+ ["Паяльна станція","🔧",15,0.2],["Волонтерська майстерня","🤝",100,1],["Гаражний цех","🏚️",1100,8],
+ ["Збиральна лінія","⚙️",12000,47],["Цех 3D-друку","🖨️",130000,260],["Завод","🏭",1.4e6,1400],
+ ["Роботизований конвеєр","🦾",2e7,7800],["Логістичний хаб","🚚",3.3e8,44000],
+ ["ШІ-конструктор","🧠",5.1e9,260000],["Оборонний кластер","🛡️",7.5e10,1.6e6]
+];
+var SU=["",
+ " тис"," млн"," млрд"," трлн"," квдрлн"," квнтлн"];
+function fmt(n,d){
+  if(n<1000)return d&&n<100?n.toFixed(1).replace(".",","):String(Math.floor(n));
+  var e=Math.min(Math.floor(Math.log10(n)/3),6),v=n/Math.pow(1000,e);
+  return v.toFixed(v<10?2:v<100?1:0).replace(".",",")+SU[e];
+}
+function own(i){return S.own[i]||0}
+function bmult(i){var m=1;for(var k=0;k<3;k++)if(S.up["b"+i+"_"+k])m*=2;return m}
+var GN=[["Державне замовлення",1e5],["Міжнародні партнери",1e7],["Експортні контракти",1e9],["Технологічний прорив",1e11]];
+function gmult(){var m=1;GN.forEach(function(g,i){if(S.up["g"+i])m*=1.15});return m}
+function achCount(){return Object.keys(S.ach).length}
+function mult(){return(1+0.01*achCount())*(1+0.02*S.con)*gmult()*(Date.now()<buffUntil?7:1)}
+function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
+function perTap(){var k=1;for(var i=0;i<6;i++)if(S.up["t"+i])k*=2;return k*mult()+((S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
+function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
+
+// покращення
+var U=[],UI={},rom=["I","II","III"],th=[1,10,25],cm=[10,100,1000];
+B.forEach(function(b,i){th.forEach(function(n,k){
+  U.push({id:"b"+i+"_"+k,ic:b[1],name:b[0]+": оптимізація "+rom[k],desc:"×2 до виробництва цеху «"+b[0]+"»",cost:b[2]*cm[k],req:function(){return own(i)>=n}});
+});});
+[["Міцніший паяльник",100,10],["Магнітна викрутка",500,50],["Ергономічний пінцет",1e4,200],["Лазерне маркування",1e5,1000],["Автоматичний прес",1e7,5000],["Гіперфокус",1e9,20000]]
+.forEach(function(t,i){U.push({id:"t"+i,ic:"👆",name:t[0],desc:"×2 за тап",cost:t[1],req:function(){return S.taps>=t[2]}})});
+U.push({id:"f0",ic:"🎓",name:"Майстер-клас",desc:"Тап додатково дає 1% від дронів/с",cost:5e4,req:function(){return S.taps>=100}});
+U.push({id:"f1",ic:"👨‍🏫",name:"Наставництво",desc:"Тап додатково дає ще 2% від дронів/с",cost:5e7,req:function(){return S.taps>=1000}});
+GN.forEach(function(g,i){U.push({id:"g"+i,ic:"⭐",name:g[0],desc:"×1,15 до всього виробництва",cost:g[1],req:function(){return S.all>=g[1]/5}})});
+U.forEach(function(u){UI[u.id]=u});
+
+// досягнення
+var A=[];
+function ach(id,cat,name,desc,get,t){A.push({id:id,cat:cat,name:name,desc:desc,get:get,t:t})}
+[100,1e3,1e4,1e5,1e6,1e7,1e8,1e9,1e10,1e11,1e12].forEach(function(t,i){
+  ach("p"+i,"Виробництво",["Перша партія","Сотня в строю","Тисячний рубіж","Десять тисяч","Сто тисяч","Мільйон дронів","Десять мільйонів","Сто мільйонів","Мільярд","Десять мільярдів","Трильйон"][i],"Виробити за весь час: "+fmt(t),function(){return S.all},t)});
+[10,100,1e3,1e4,1e5].forEach(function(t,i){
+  ach("k"+i,"Тапи",["Розминка","Золоті руки","Тисяча дотиків","Невтомний збирач","Сто тисяч тапів"][i],"Зібрати вручну: "+fmt(t),function(){return S.taps},t)});
+B.forEach(function(b,i){[1,10,50].forEach(function(n){
+  ach("c"+i+"_"+n,"Цехи: "+b[0],b[0]+" ×"+n,"Мати цехів «"+b[0]+"»: "+n,function(){return own(i)},n)})});
+[1,10,50,100].forEach(function(t,i){
+  ach("g"+i,"Золоті дрони",["Помітили!","Мисливець за бонусами","Орлине око","Сотня золотих"][i],"Упіймати золотих дронів: "+t,function(){return S.gold},t)});
+[1,3,10].forEach(function(t,i){
+  ach("r"+i,"Контракти",["Перший контракт","Серійний підписант","Стратегічний партнер"][i],"Підписати контракти (скидань: "+t+")",function(){return S.pres},t)});
+[10,25,40].forEach(function(t,i){
+  ach("u"+i,"Покращення",["Перші апгрейди","Технологічний стрибок","Колекціонер ідей"][i],"Купити покращень за забіг: "+t,function(){return Object.keys(S.up).length},t)});
+[10,1e3,1e5,1e7].forEach(function(t,i){
+  ach("s"+i,"Потужність",["Автоматизація","Потік","Конвеєр без зупинки","Індустріальна потужність"][i],"Досягти виробництва, дронів/с: "+fmt(t),function(){return cps()},t)});
+function check(){A.forEach(function(a){if(!S.ach[a.id]&&a.get()>=a.t){S.ach[a.id]=1;toast("🏆 "+a.name)}})}
+
+// інтерфейс
+var tt;function toast(m){var t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(function(){t.hidden=true},2800)}
+function hap(){try{tg&&tg.HapticFeedback&&tg.HapticFeedback.impactOccurred("light")}catch(e){}}
+function save(){try{S.t=Date.now();localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function gain(){return Math.floor(Math.cbrt(S.run/1e7))}
+
+var bl=$("bl"),brow=[];
+B.forEach(function(b,i){
+  var el=document.createElement("button");el.className="up";el.dataset.b=i;
+  el.innerHTML='<span class="ic">'+b[1]+'</span><span><b>'+b[0]+' <span class="n"></span></b><small></small></span><span class="cost"></span>';
+  bl.appendChild(el);brow.push(el);
+});
+bl.onclick=function(e){
+  var el=e.target.closest("button[data-b]");if(!el||el.disabled)return;
+  var i=+el.dataset.b,c=costN(i,amt);
+  if(S.d>=c){S.d-=c;S.own[i]=own(i)+amt;render();save()}
+};
+var ul=$("ul"),ukey="";
+ul.onclick=function(e){
+  var el=e.target.closest("button[data-u]");if(!el)return;
+  var u=UI[el.dataset.u];
+  if(u&&S.d>=u.cost&&!S.up[u.id]){S.d-=u.cost;S.up[u.id]=1;ukey="";render();save()}
+};
+document.querySelectorAll(".amt button").forEach(function(b){
+  b.onclick=function(){amt=+b.dataset.amt;document.querySelectorAll(".amt button").forEach(function(x){x.setAttribute("aria-pressed",x===b)});render()};
+});
+function renderUps(){
+  var av=U.filter(function(u){return!S.up[u.id]&&u.req()}).sort(function(a,b){return a.cost-b.cost}),sh=av.slice(0,5);
+  var key=sh.map(function(u){return u.id}).join()+av.length;
+  if(key!==ukey){
+    ukey=key;
+    ul.innerHTML=sh.map(function(u){return'<button class="up" data-u="'+u.id+'"><span class="ic">'+u.ic+'</span><span><b>'+u.name+'</b><small>'+u.desc+'</small></span><span class="cost">'+fmt(u.cost)+'</span></button>'}).join("")+(av.length>5?'<p class="more">Ще покращень: '+(av.length-5)+'</p>':"");
   }
-  var tap=$("tap"),stage=$("stage");
-  tap.addEventListener("pointerdown",function(e){
-    var v=perTap();S.score+=v;render();
-    var p=document.createElement("span");p.className="pop";p.textContent="+"+fmt(v);
-    var r=stage.getBoundingClientRect();
-    p.style.left=(e.clientX-r.left-12)+"px";p.style.top=(e.clientY-r.top-30)+"px";
-    stage.appendChild(p);setTimeout(function(){p.remove()},800);
-    try{if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.HapticFeedback)Telegram.WebApp.HapticFeedback.impactOccurred("light")}catch(x){}
+  $("uh").hidden=!av.length;
+  ul.querySelectorAll("button").forEach(function(b){b.disabled=S.d<UI[b.dataset.u].cost});
+}
+function render(){
+  $("score").textContent=fmt(S.d);
+  $("cps").textContent=fmt(cps(),1);$("cpt").textContent=fmt(perTap(),1);
+  var left=buffUntil-Date.now();$("buff").textContent=left>0?"⚡ ×7 до виробництва ще "+Math.ceil(left/1000)+" с":"";
+  var m=mult();
+  B.forEach(function(b,i){
+    var el=brow[i],c=costN(i,amt);
+    el.disabled=S.d<c;
+    el.querySelector(".cost").textContent=fmt(c);
+    el.querySelector(".n").textContent=own(i)?"×"+own(i):"";
+    el.querySelector("small").textContent="+"+fmt(b[3]*bmult(i)*m,1)+" дронів/с кожен";
   });
-  tap.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();tap.classList.add("hit");S.score+=perTap();render();setTimeout(function(){tap.classList.remove("hit")},80)}});
-  // доход офлайн (до 2 часов)
-  var off=Math.min((Date.now()-(S.t||Date.now()))/1000,7200)*perSec();
-  if(off>=1){S.score+=off}
-  var last=Date.now();
-  setInterval(function(){var now=Date.now(),d=(now-last)/1000;last=now;var g=perSec()*d;if(g>0){S.score+=g;render()}},250);
-  setInterval(save,3000);
-  document.addEventListener("visibilitychange",function(){if(document.hidden)save()});
-  $("reset").onclick=function(){if(confirm("Сбросить весь прогресс?")){S={score:0,own:{},t:Date.now()};save();render()}};
-  render();
+  renderUps();
+  if(view==="pres")renderPres();
+}
+function renderAch(){
+  var n=achCount(),h='<div class="card">Досягнень: <b>'+n+' / '+A.length+'</b>. Кожне дає +1% до виробництва (зараз +'+n+'%).</div>',cat="";
+  A.forEach(function(a){
+    if(a.cat!==cat){cat=a.cat;h+="<h3>"+cat+"</h3>"}
+    var v=Math.min(a.get(),a.t),done=S.ach[a.id];
+    h+='<div class="ach'+(done?" done":"")+'"><div class="at"><b>'+(done?"✅ ":"")+a.name+'</b><small>'+a.desc+'</small></div><div class="bar"><i style="width:'+(v/a.t*100)+'%"></i></div><small class="pv">'+(done?"Виконано":fmt(v)+" / "+fmt(a.t))+'</small></div>';
+  });
+  $("v-ach").innerHTML=h;
+}
+function renderPres(){
+  var g=gain();
+  $("pr-run").textContent=fmt(S.run);$("pr-con").textContent=S.con;$("pr-bonus").textContent="+"+S.con*2+"%";$("pr-n").textContent=S.pres;
+  $("pr-gain").textContent="+"+g;$("pr-btn").disabled=g<1;
+  $("pr-next").textContent="Наступний контракт: коли за забіг буде вироблено "+fmt(Math.pow(g+1,3)*1e7)+" дронів";
+}
+function show(v){
+  view=v;
+  ["game","ach","pres"].forEach(function(n){$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
+  if(v==="ach")renderAch();if(v==="pres")renderPres();
+}
+["game","ach","pres"].forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
+
+// двоетапне підтвердження без confirm()
+function armed(btn,label,fn){
+  var orig=btn.textContent,t;
+  btn.onclick=function(){
+    if(btn.dataset.armed){clearTimeout(t);delete btn.dataset.armed;btn.textContent=orig;fn();return}
+    btn.dataset.armed=1;btn.textContent=label;
+    t=setTimeout(function(){delete btn.dataset.armed;btn.textContent=orig},4000);
+  };
+}
+armed($("pr-btn"),"Натисніть ще раз для підтвердження",function(){
+  var g=gain();if(g<1)return;
+  S.con+=g;S.pres++;S.d=0;S.run=0;S.own={};S.up={};buffUntil=0;ukey="";
+  toast("Підписано контрактів: "+g);check();render();save();show("game");
+});
+armed($("reset"),"Точно скинути все? Натисніть ще раз",function(){
+  S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now()};buffUntil=0;ukey="";render();save();
+});
+
+// тап
+var tap=$("tap"),stage=$("stage"),fl;
+function doTap(x,y){
+  var v=perTap();S.d+=v;S.run+=v;S.all+=v;S.taps++;
+  var p=document.createElement("span");p.className="pop";p.textContent="+"+fmt(v,1);
+  p.style.left=x+"px";p.style.top=y+"px";stage.appendChild(p);setTimeout(function(){p.remove()},800);
+  tap.classList.add("fly");clearTimeout(fl);fl=setTimeout(function(){tap.classList.remove("fly")},650);
+  hap();render();
+}
+tap.addEventListener("pointerdown",function(e){var r=stage.getBoundingClientRect();doTap(e.clientX-r.left-12,e.clientY-r.top-30)});
+tap.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();doTap(stage.clientWidth/2-12,100)}});
+
+// золотий дрон
+var gold=$("gold"),gt,gs;
+function sched(){clearTimeout(gs);gs=setTimeout(spawn,(45+Math.random()*75)*1000)}
+function spawn(){
+  if(document.hidden||view!=="game"){sched();return}
+  gold.style.left=(5+Math.random()*75)+"%";gold.style.top=(2+Math.random()*75)+"%";gold.hidden=false;
+  clearTimeout(gt);gt=setTimeout(function(){gold.hidden=true;sched()},12000);
+}
+gold.onclick=function(){
+  gold.hidden=true;clearTimeout(gt);sched();S.gold++;hap();
+  if(Math.random()<0.6){buffUntil=Date.now()+30000;toast("Золотий дрон: ×7 до виробництва на 30 с!")}
+  else{var g=cps()*900+perTap()*13;S.d+=g;S.run+=g;S.all+=g;toast("Терміновий контракт: +"+fmt(g)+" дронів")}
+  check();render();save();
+};
+
+// цикл
+var off=Math.min((Date.now()-(S.t||Date.now()))/1000,7200)*cps();
+if(off>=1){S.d+=off;S.run+=off;S.all+=off;toast("Поки вас не було: +"+fmt(off)+" дронів")}
+var last=Date.now();
+setInterval(function(){
+  var now=Date.now(),dt=(now-last)/1000;last=now;
+  var g=cps()*dt;if(g>0){S.d+=g;S.run+=g;S.all+=g}
+  check();render();
+},250);
+setInterval(function(){if(view==="ach")renderAch()},1000);
+setInterval(save,3000);
+document.addEventListener("visibilitychange",function(){if(document.hidden)save()});
+sched();render();
 })();
 </script>
 </body>
