@@ -356,7 +356,7 @@ $("daily").onclick=function(){
   toast(m);check();render();save();
 };
 // рейтинг: вкажіть адресу свого сервера, напр. https://my-leaderboard.example.workers.dev
-var LB_URL="";
+var LB_URL="https://firepoint-lb.7zfalsh.workers.dev";
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function myName(){var u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;return S.nick||(u&&u.first_name)||"Гравець"}
 function sendScore(){
