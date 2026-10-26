@@ -35,8 +35,8 @@ main{width:100%;max-width:480px;padding:14px 14px 40px}
 .score{font-size:52px;font-weight:800;line-height:1.05;margin:4px 0 0;font-variant-numeric:tabular-nums}
 .sub{margin:4px 0 0;color:var(--muted);font-size:14px}
 #buff{min-height:20px;margin:4px 0 0;font-weight:700;color:var(--accent)}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:4px;margin:8px 0 6px}
-.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:14px;padding:9px 4px;border-radius:10px;cursor:pointer}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:4px;margin:8px 0 6px}
+.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:11px;padding:9px 1px;border-radius:10px;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .tabs button:focus-visible,#tap:focus-visible,.up:focus-visible,.amt button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .stage{position:relative;height:280px;display:flex;align-items:center;justify-content:center}
@@ -83,6 +83,8 @@ h2,h3{font-size:16px;margin:14px 0 8px}
 .reset{display:block;margin:20px auto 0;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
 #toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:90%;text-align:center;z-index:5}
+.up.own{border-color:var(--ok)}
+input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.pop,#gold,#tap.fly .bl{animation:none}#tap{transition:none}}
 </style>
 </head>
@@ -98,6 +100,8 @@ h2,h3{font-size:16px;margin:14px 0 8px}
     <button role="tab" id="tab-game" aria-selected="true">Гра</button>
     <button role="tab" id="tab-ach" aria-selected="false">Досягнення</button>
     <button role="tab" id="tab-pres" aria-selected="false">Контракти</button>
+    <button role="tab" id="tab-tech" aria-selected="false">Технології</button>
+    <button role="tab" id="tab-lb" aria-selected="false">Рейтинг</button>
   </div>
 
   <section id="v-game">
@@ -121,6 +125,7 @@ h2,h3{font-size:16px;margin:14px 0 8px}
       </button>
       <button id="gold" hidden aria-label="Золотий дрон: забрати бонус">🚁</button>
     </div>
+    <button class="btn" id="daily" style="margin:6px 0 4px"></button>
     <div id="uh"><h2>Покращення</h2><div class="list" id="ul"></div></div>
     <div class="amt"><h2>Цехи</h2>
       <button data-amt="1" aria-pressed="true">×1</button><button data-amt="10" aria-pressed="false">×10</button><button data-amt="100" aria-pressed="false">×100</button>
@@ -130,16 +135,19 @@ h2,h3{font-size:16px;margin:14px 0 8px}
   </section>
 
   <section id="v-ach" hidden></section>
+  <section id="v-tech" hidden></section>
+  <section id="v-lb" hidden></section>
 
   <section id="v-pres" hidden>
     <div class="card">
-      <p>Підпишіть нові державні контракти: цехи й покращення скинуться, а ви отримаєте контракти. Кожен контракт назавжди дає +2% до всього виробництва. Досягнення зберігаються.</p>
+      <p>Підпишіть нові державні контракти: цехи й покращення скинуться, а ви отримаєте контракти. Кожен контракт назавжди дає +2% до всього виробництва та 1 патент для дерева технологій. Досягнення й технології зберігаються.</p>
     </div>
     <div class="card">
       <div class="row"><span>Дронів за цей забіг</span><b id="pr-run">0</b></div>
       <div class="row"><span>Контрактів у вас</span><b id="pr-con">0</b></div>
       <div class="row"><span>Бонус до виробництва</span><b id="pr-bonus">+0%</b></div>
       <div class="row"><span>Скидань зроблено</span><b id="pr-n">0</b></div>
+      <div class="row"><span>Патентів для технологій</span><b id="pr-pat">0</b></div>
     </div>
     <div class="card">
       <div class="row"><span>Нові контракти зараз</span><span class="big" id="pr-gain">0</span></div>
@@ -157,6 +165,8 @@ var $=function(i){return document.getElementById(i)};
 var tg=null;try{tg=window.Telegram&&Telegram.WebApp;if(tg){tg.ready();tg.expand()}}catch(e){tg=null}
 var S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now()};
 try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p.d==="number"){for(var k in p)S[k]=p[k]}}}catch(e){}
+S.tech=S.tech||{};S.pat=S.pat||0;S.streak=S.streak||0;S.dayLast=S.dayLast||"";S.best=S.best||[];S.nick=S.nick||"";
+var VIEWS=["game","ach","pres","tech","lb"];
 var buffUntil=0,amt=1,view="game";
 
 // назва, іконка, базова ціна, дронів/с
@@ -164,13 +174,16 @@ var B=[
  ["Паяльна станція","🔧",15,0.2],["Волонтерська майстерня","🤝",100,1],["Гаражний цех","🏚️",1100,8],
  ["Збиральна лінія","⚙️",12000,47],["Цех 3D-друку","🖨️",130000,260],["Завод","🏭",1.4e6,1400],
  ["Роботизований конвеєр","🦾",2e7,7800],["Логістичний хаб","🚚",3.3e8,44000],
- ["ШІ-конструктор","🧠",5.1e9,260000],["Оборонний кластер","🛡️",7.5e10,1.6e6]
+ ["ШІ-конструктор","🧠",5.1e9,260000],["Оборонний кластер","🛡️",7.5e10,1.6e6],
+ ["Дослідна лабораторія","🔬",1.1e12,1e7],["Супутниковий зв’язок","🛰️",1.7e13,6.5e7],["Автономний полігон","🎯",2.6e14,4.3e8],
+ ["Квантова фабрика","⚛️",4e15,2.9e9],["Орбітальна верф","🚀",6.2e16,2e10],["Місячна база","🌙",1e18,1.4e11],
+ ["Фабрика часу","⏳",1.7e19,1e12],["Мультивсесвіт Fire Point","🌌",3e20,7.5e12]
 ];
 var SU=["",
- " тис"," млн"," млрд"," трлн"," квдрлн"," квнтлн"];
+ " тис"," млн"," млрд"," трлн"," квдрлн"," квнтлн"," секст"," септ"];
 function fmt(n,d){
   if(n<1000)return d&&n<100?n.toFixed(1).replace(".",","):String(Math.floor(n));
-  var e=Math.min(Math.floor(Math.log10(n)/3),6),v=n/Math.pow(1000,e);
+  var e=Math.min(Math.floor(Math.log10(n)/3),8),v=n/Math.pow(1000,e);
   return v.toFixed(v<10?2:v<100?1:0).replace(".",",")+SU[e];
 }
 function own(i){return S.own[i]||0}
@@ -178,10 +191,14 @@ function bmult(i){var m=1;for(var k=0;k<3;k++)if(S.up["b"+i+"_"+k])m*=2;return m
 var GN=[["Державне замовлення",1e5],["Міжнародні партнери",1e7],["Експортні контракти",1e9],["Технологічний прорив",1e11]];
 function gmult(){var m=1;GN.forEach(function(g,i){if(S.up["g"+i])m*=1.15});return m}
 function achCount(){return Object.keys(S.ach).length}
-function mult(){return(1+0.01*achCount())*(1+0.02*S.con)*gmult()*(Date.now()<buffUntil?7:1)}
+var TP=[["p1",1.1],["p2",1.15],["p3",1.25],["p4",1.5]];
+function tmult(){var m=1;TP.forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
+function bm(){return S.tech.g3?10:7}
+function mult(){return(1+0.01*achCount())*(1+0.02*S.con)*gmult()*tmult()*(Date.now()<buffUntil?bm():1)}
 function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
 function perTap(){var k=1;for(var i=0;i<6;i++)if(S.up["t"+i])k*=2;return k*mult()+((S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
-function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
+function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
+function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*cmul()*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
 
 // покращення
 var U=[],UI={},rom=["I","II","III"],th=[1,10,25],cm=[10,100,1000];
@@ -212,6 +229,26 @@ B.forEach(function(b,i){[1,10,50].forEach(function(n){
   ach("u"+i,"Покращення",["Перші апгрейди","Технологічний стрибок","Колекціонер ідей"][i],"Купити покращень за забіг: "+t,function(){return Object.keys(S.up).length},t)});
 [10,1e3,1e5,1e7].forEach(function(t,i){
   ach("s"+i,"Потужність",["Автоматизація","Потік","Конвеєр без зупинки","Індустріальна потужність"][i],"Досягти виробництва, дронів/с: "+fmt(t),function(){return cps()},t)});
+[3,7,30].forEach(function(t,i){
+  ach("d"+i,"Щоденний бонус",["Три дні поспіль","Тиждень на зміні","Місяць без пропусків"][i],"Серія щоденних бонусів: "+t,function(){return S.streak},t)});
+[1,6,12].forEach(function(t,i){
+  ach("t"+i,"Технології",["Перший патент","Інженерна думка","Дерево повністю"][i],"Відкрити технологій: "+t,function(){return Object.keys(S.tech).length},t)});
+// дерево технологій: id, іконка, гілка, назва, опис, ціна в патентах, потрібна технологія
+var T=[
+["p1","⚙️","Виробництво","Оптимізація логістики","+10% до виробництва",1,""],
+["p2","📦","Виробництво","Бережливе виробництво","+15% до виробництва",3,"p1"],
+["p3","🤖","Виробництво","Автоматизація 2.0","+25% до виробництва",8,"p2"],
+["p4","🔗","Виробництво","Промисловий синергізм","+50% до виробництва",20,"p3"],
+["c1","💰","Економіка","Оптові закупівлі","Цехи дешевші на 5%",1,""],
+["c2","🧱","Економіка","Власні матеріали","Цехи дешевші ще на 5%",4,"c1"],
+["c3","🏛️","Економіка","Державна програма","Цехи дешевші ще на 10%",10,"c2"],
+["c4","🏗️","Економіка","Вертикальна інтеграція","Цехи дешевші ще на 10%",25,"c3"],
+["g1","📡","Бонуси і час","Радар","Золоті дрони з’являються частіше",2,""],
+["g2","🌙","Бонуси і час","Нічні зміни","Дохід без вас до 8 годин замість 2",3,"g1"],
+["g3","💎","Бонуси і час","Щедрі замовлення","Золотий дрон: ×10 на 45 с замість ×7 на 30 с",8,"g2"],
+["g4","🏦","Бонуси і час","Стартовий капітал","Після контрактів починаєте з 50 тис дронів",15,"g3"]
+];
+var TM={};T.forEach(function(t){TM[t[0]]=t});
 function check(){A.forEach(function(a){if(!S.ach[a.id]&&a.get()>=a.t){S.ach[a.id]=1;toast("🏆 "+a.name)}})}
 
 // інтерфейс
@@ -251,9 +288,9 @@ function renderUps(){
   ul.querySelectorAll("button").forEach(function(b){b.disabled=S.d<UI[b.dataset.u].cost});
 }
 function render(){
-  $("score").textContent=fmt(S.d);
+  $("score").textContent=fmt(S.d);renderDaily();
   $("cps").textContent=fmt(cps(),1);$("cpt").textContent=fmt(perTap(),1);
-  var left=buffUntil-Date.now();$("buff").textContent=left>0?"⚡ ×7 до виробництва ще "+Math.ceil(left/1000)+" с":"";
+  var left=buffUntil-Date.now();$("buff").textContent=left>0?"⚡ ×"+bm()+" до виробництва ще "+Math.ceil(left/1000)+" с":"";
   var m=mult();
   B.forEach(function(b,i){
     var el=brow[i],c=costN(i,amt);
@@ -276,17 +313,71 @@ function renderAch(){
 }
 function renderPres(){
   var g=gain();
-  $("pr-run").textContent=fmt(S.run);$("pr-con").textContent=S.con;$("pr-bonus").textContent="+"+S.con*2+"%";$("pr-n").textContent=S.pres;
+  $("pr-run").textContent=fmt(S.run);$("pr-con").textContent=S.con;$("pr-bonus").textContent="+"+S.con*2+"%";$("pr-n").textContent=S.pres;$("pr-pat").textContent=S.pat;
   $("pr-gain").textContent="+"+g;$("pr-btn").disabled=g<1;
   $("pr-next").textContent="Наступний контракт: коли за забіг буде вироблено "+fmt(Math.pow(g+1,3)*1e7)+" дронів";
 }
 function show(v){
   view=v;
-  ["game","ach","pres"].forEach(function(n){$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
-  if(v==="ach")renderAch();if(v==="pres")renderPres();
+  VIEWS.forEach(function(n){$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
+  if(v==="ach")renderAch();if(v==="pres")renderPres();if(v==="tech")renderTech();if(v==="lb")renderLb();
 }
-["game","ach","pres"].forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
+VIEWS.forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
 
+// технології
+function techOk(t){return!t[6]||S.tech[t[6]]}
+function renderTech(){
+  var h='<div class="card">Патентів: <b>'+S.pat+'</b>. Контракти дають по 1 патенту. Технології діють назавжди й не скидаються.</div>',br="";
+  T.forEach(function(t){
+    if(t[2]!==br){br=t[2];h+="<h3>"+br+"</h3>"}
+    var has=S.tech[t[0]],ok=techOk(t);
+    h+='<button class="up'+(has?" own":"")+'" data-t="'+t[0]+'"'+(!has&&(!ok||S.pat<t[5])?" disabled":"")+'><span class="ic">'+t[1]+'</span><span><b>'+t[3]+'</b><small>'+t[4]+(ok?"":" (спершу: "+TM[t[6]][3]+")")+'</small></span><span class="cost">'+(has?"✓":t[5]+" пат.")+'</span></button><div style="height:8px"></div>';
+  });
+  $("v-tech").innerHTML=h;
+}
+$("v-tech").onclick=function(e){
+  var el=e.target.closest("button[data-t]");if(!el)return;
+  var t=TM[el.dataset.t];if(!t||S.tech[t[0]]||!techOk(t)||S.pat<t[5])return;
+  S.pat-=t[5];S.tech[t[0]]=1;check();renderTech();render();save();
+};
+// щоденний бонус
+function dkey(t){var d=new Date(t);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function dailyState(){var today=dkey(Date.now());if(S.dayLast===today)return{done:1};return{done:0,n:S.dayLast===dkey(Date.now()-864e5)?S.streak+1:1}}
+function renderDaily(){
+  var s=dailyState(),b=$("daily");
+  b.disabled=!!s.done;
+  b.textContent=s.done?"🎁 Бонус отримано. Серія: "+S.streak+" дн. Приходьте завтра":"🎁 Щоденний бонус: день "+s.n;
+}
+$("daily").onclick=function(){
+  var s=dailyState();if(s.done)return;
+  S.streak=s.n;S.dayLast=dkey(Date.now());
+  var r=(100+cps()*600)*Math.min(S.streak,10);S.d+=r;S.run+=r;S.all+=r;
+  var m="🎁 +"+fmt(r)+" дронів";if(S.streak%7===0){S.pat++;m+=" і 1 патент"}
+  toast(m);check();render();save();
+};
+// рейтинг: вкажіть адресу свого сервера, напр. https://my-leaderboard.example.workers.dev
+var LB_URL="";
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function myName(){var u=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;return S.nick||(u&&u.first_name)||"Гравець"}
+function sendScore(){
+  if(!LB_URL)return;
+  try{fetch(LB_URL+"/score",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:myName(),score:S.all,initData:(tg&&tg.initData)||""})}).catch(function(){})}catch(e){}
+}
+function loadLb(){
+  fetch(LB_URL+"/top").then(function(r){return r.json()}).then(function(a){
+    var el=$("lbl");if(!el)return;
+    el.innerHTML=a.slice(0,20).map(function(x,i){return'<div class="row"><span>'+(i+1)+". "+esc(x.name)+'</span><b>'+fmt(+x.score||0)+'</b></div>'}).join("")||"Поки порожньо";
+  }).catch(function(){var el=$("lbl");if(el)el.textContent="Не вдалося завантажити рейтинг"});
+}
+function renderLb(){
+  var h='<div class="card"><div class="row"><span>Мій результат (дронів за весь час)</span><b>'+fmt(S.all)+'</b></div><div class="row"><span>Скидань: '+S.pres+'</span><span>Досягнень: '+achCount()+'</span></div></div>';
+  h+='<div class="card"><p>Ім’я в рейтингу</p><input id="nick" maxlength="20" value="'+esc(myName())+'"></div>';
+  if(S.best.length)h+="<h3>Мої найкращі забіги</h3>"+S.best.map(function(v,i){return'<div class="card row"><span>'+(i+1)+'.</span><b>'+fmt(v)+'</b></div>'}).join("");
+  h+='<h3>Топ гравців</h3><div class="card" id="lbl">'+(LB_URL?"Завантаження…":"Спільний рейтинг запрацює після підключення сервера. Поки що доступні ваші власні рекорди.")+'</div>';
+  $("v-lb").innerHTML=h;
+  var ni=$("nick");ni.onchange=function(){S.nick=ni.value.trim().slice(0,20);save();sendScore()};
+  if(LB_URL)loadLb();
+}
 // двоетапне підтвердження без confirm()
 function armed(btn,label,fn){
   var orig=btn.textContent,t;
@@ -298,11 +389,11 @@ function armed(btn,label,fn){
 }
 armed($("pr-btn"),"Натисніть ще раз для підтвердження",function(){
   var g=gain();if(g<1)return;
-  S.con+=g;S.pres++;S.d=0;S.run=0;S.own={};S.up={};buffUntil=0;ukey="";
+  S.con+=g;S.pat+=g;S.pres++;S.best.push(S.run);S.best.sort(function(a,b){return b-a});S.best=S.best.slice(0,5);S.d=S.tech.g4?50000:0;S.run=0;S.own={};S.up={};buffUntil=0;ukey="";sendScore();
   toast("Підписано контрактів: "+g);check();render();save();show("game");
 });
 armed($("reset"),"Точно скинути все? Натисніть ще раз",function(){
-  S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now()};buffUntil=0;ukey="";render();save();
+  S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now(),tech:{},pat:0,streak:0,dayLast:"",best:[],nick:""};buffUntil=0;ukey="";render();save();
 });
 
 // тап
@@ -319,7 +410,7 @@ tap.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.pr
 
 // золотий дрон
 var gold=$("gold"),gt,gs;
-function sched(){clearTimeout(gs);gs=setTimeout(spawn,(45+Math.random()*75)*1000)}
+function sched(){clearTimeout(gs);gs=setTimeout(spawn,(45+Math.random()*75)*1000*(S.tech.g1?0.7:1))}
 function spawn(){
   if(document.hidden||view!=="game"){sched();return}
   gold.style.left=(5+Math.random()*75)+"%";gold.style.top=(2+Math.random()*75)+"%";gold.hidden=false;
@@ -327,13 +418,13 @@ function spawn(){
 }
 gold.onclick=function(){
   gold.hidden=true;clearTimeout(gt);sched();S.gold++;hap();
-  if(Math.random()<0.6){buffUntil=Date.now()+30000;toast("Золотий дрон: ×7 до виробництва на 30 с!")}
+  if(Math.random()<0.6){var bt=S.tech.g3?45:30;buffUntil=Date.now()+bt*1000;toast("Золотий дрон: ×"+bm()+" до виробництва на "+bt+" с!")}
   else{var g=cps()*900+perTap()*13;S.d+=g;S.run+=g;S.all+=g;toast("Терміновий контракт: +"+fmt(g)+" дронів")}
   check();render();save();
 };
 
 // цикл
-var off=Math.min((Date.now()-(S.t||Date.now()))/1000,7200)*cps();
+var off=Math.min((Date.now()-(S.t||Date.now()))/1000,S.tech.g2?28800:7200)*cps();
 if(off>=1){S.d+=off;S.run+=off;S.all+=off;toast("Поки вас не було: +"+fmt(off)+" дронів")}
 var last=Date.now();
 setInterval(function(){
@@ -343,6 +434,7 @@ setInterval(function(){
 },250);
 setInterval(function(){if(view==="ach")renderAch()},1000);
 setInterval(save,3000);
+setInterval(sendScore,60000);
 document.addEventListener("visibilitychange",function(){if(document.hidden)save()});
 sched();render();
 })();
