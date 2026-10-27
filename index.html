@@ -35,8 +35,8 @@ main{width:100%;max-width:480px;padding:14px 14px 40px}
 .score{font-size:52px;font-weight:800;line-height:1.05;margin:4px 0 0;font-variant-numeric:tabular-nums}
 .sub{margin:4px 0 0;color:var(--muted);font-size:14px}
 #buff{min-height:20px;margin:4px 0 0;font-weight:700;color:var(--accent)}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:4px;margin:8px 0 6px}
-.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:11px;padding:9px 1px;border-radius:10px;cursor:pointer}
+.tabs{display:flex;overflow-x:auto;gap:2px;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:4px;margin:8px 0 6px}
+.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;font-size:12.5px;padding:9px 11px;border-radius:10px;cursor:pointer;flex:0 0 auto;white-space:nowrap}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .tabs button:focus-visible,#tap:focus-visible,.up:focus-visible,.amt button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .stage{position:relative;height:280px;display:flex;align-items:center;justify-content:center}
@@ -100,6 +100,7 @@ input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:
     <button role="tab" id="tab-game" aria-selected="true">Гра</button>
     <button role="tab" id="tab-ach" aria-selected="false">Досягнення</button>
     <button role="tab" id="tab-pres" aria-selected="false">Контракти</button>
+    <button role="tab" id="tab-daily" aria-selected="false">Щоденні</button>
     <button role="tab" id="tab-tech" aria-selected="false">Технології</button>
     <button role="tab" id="tab-lb" aria-selected="false">Рейтинг</button>
   </div>
@@ -125,16 +126,20 @@ input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:
       </button>
       <button id="gold" hidden aria-label="Золотий дрон: забрати бонус">🚁</button>
     </div>
-    <button class="btn" id="daily" style="margin:6px 0 4px"></button>
-    <div id="uh"><h2>Покращення</h2><div class="list" id="ul"></div></div>
+    
+    <div id="uh"><div class="amt"><h2>Покращення</h2><button id="buyU">Купити все</button></div><div class="list" id="ul"></div></div>
     <div class="amt"><h2>Цехи</h2>
-      <button data-amt="1" aria-pressed="true">×1</button><button data-amt="10" aria-pressed="false">×10</button><button data-amt="100" aria-pressed="false">×100</button>
+      <button data-amt="1" aria-pressed="true">×1</button><button data-amt="10" aria-pressed="false">×10</button><button data-amt="100" aria-pressed="false">×100</button><button id="buyB">Купити все</button>
     </div>
     <div class="list" id="bl"></div>
     <button class="reset" id="reset">Почати заново</button>
   </section>
 
   <section id="v-ach" hidden></section>
+  <section id="v-daily" hidden>
+    <div class="card"><p>Заходьте щодня: чим довша серія, тим більша нагорода (до ×10). Кожен 7-й день серії дає ще й патент для технологій.</p></div>
+    <button class="btn" id="daily"></button>
+  </section>
   <section id="v-tech" hidden></section>
   <section id="v-lb" hidden></section>
 
@@ -166,7 +171,7 @@ var tg=null;try{tg=window.Telegram&&Telegram.WebApp;if(tg){tg.ready();tg.expand(
 var S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now()};
 try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p.d==="number"){for(var k in p)S[k]=p[k]}}}catch(e){}
 S.tech=S.tech||{};S.pat=S.pat||0;S.streak=S.streak||0;S.dayLast=S.dayLast||"";S.best=S.best||[];S.nick=S.nick||"";
-var VIEWS=["game","ach","pres","tech","lb"];
+var VIEWS=["game","ach","pres","daily","tech","lb"];
 var buffUntil=0,amt=1,view="game";
 
 // назва, іконка, базова ціна, дронів/с
@@ -274,8 +279,8 @@ ul.onclick=function(e){
   var u=UI[el.dataset.u];
   if(u&&S.d>=u.cost&&!S.up[u.id]){S.d-=u.cost;S.up[u.id]=1;ukey="";render();save()}
 };
-document.querySelectorAll(".amt button").forEach(function(b){
-  b.onclick=function(){amt=+b.dataset.amt;document.querySelectorAll(".amt button").forEach(function(x){x.setAttribute("aria-pressed",x===b)});render()};
+document.querySelectorAll(".amt button[data-amt]").forEach(function(b){
+  b.onclick=function(){amt=+b.dataset.amt;document.querySelectorAll(".amt button[data-amt]").forEach(function(x){x.setAttribute("aria-pressed",x===b)});render()};
 });
 function renderUps(){
   var av=U.filter(function(u){return!S.up[u.id]&&u.req()}).sort(function(a,b){return a.cost-b.cost}),sh=av.slice(0,5);
@@ -325,6 +330,22 @@ function show(v){
 VIEWS.forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
 
 // технології
+// купити все доступне
+$("buyU").onclick=function(){
+  var n=0;
+  U.filter(function(u){return!S.up[u.id]&&u.req()}).sort(function(a,b){return a.cost-b.cost}).forEach(function(u){if(S.d>=u.cost){S.d-=u.cost;S.up[u.id]=1;n++}});
+  if(n){ukey="";check();render();save();toast("Куплено покращень: "+n)}
+};
+$("buyB").onclick=function(){
+  var n=0,g=0;
+  while(g++<1000){
+    var bi=-1,bc=Infinity;
+    B.forEach(function(b,i){var c=costN(i,1);if(c<bc&&c<=S.d){bc=c;bi=i}});
+    if(bi<0)break;
+    S.d-=bc;S.own[bi]=own(bi)+1;n++;
+  }
+  if(n){check();render();save();toast("Куплено цехів: "+n)}
+};
 function techOk(t){return!t[6]||S.tech[t[6]]}
 function renderTech(){
   var h='<div class="card">Патентів: <b>'+S.pat+'</b>. Контракти дають по 1 патенту. Технології діють назавжди й не скидаються.</div>',br="";
