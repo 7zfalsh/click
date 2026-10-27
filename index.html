@@ -84,6 +84,7 @@ h2,h3{font-size:16px;margin:14px 0 8px}
 #toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:90%;text-align:center;z-index:5}
 .up.own{border-color:var(--ok)}
+.ach.next{border-color:var(--accent)}
 input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.pop,#gold,#tap.fly .bl{animation:none}#tap{transition:none}}
 </style>
@@ -137,8 +138,9 @@ input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:
 
   <section id="v-ach" hidden></section>
   <section id="v-daily" hidden>
-    <div class="card"><p>Заходьте щодня: чим довша серія, тим більша нагорода (до ×10). Кожен 7-й день серії дає ще й патент для технологій.</p></div>
+    <div class="card"><p>Заходьте щодня й забирайте нагороди по днях місяця. Чим далі, тим більший бонус, а дні 7, 14, 21 і 30 дають ще й патенти для технологій. Пропущений день скидає серію.</p></div>
     <button class="btn" id="daily"></button>
+    <div id="dlist" style="margin-top:12px"></div>
   </section>
   <section id="v-tech" hidden></section>
   <section id="v-lb" hidden></section>
@@ -325,7 +327,7 @@ function renderPres(){
 function show(v){
   view=v;
   VIEWS.forEach(function(n){$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
-  if(v==="ach")renderAch();if(v==="pres")renderPres();if(v==="tech")renderTech();if(v==="lb")renderLb();
+  if(v==="ach")renderAch();if(v==="pres")renderPres();if(v==="tech")renderTech();if(v==="daily")renderDlist();if(v==="lb")renderLb();
 }
 VIEWS.forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
 
@@ -362,19 +364,31 @@ $("v-tech").onclick=function(e){
   S.pat-=t[5];S.tech[t[0]]=1;check();renderTech();render();save();
 };
 // щоденний бонус
+var DR=[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,12,12,14,14,16,16,18,18,20,25],DP={7:1,14:2,21:3,30:5};
+function dbase(){return 100+Math.max(cps()*600,S.all*0.002)}
+function dpos(n){return(n-1)%30+1}
+function renderDlist(){
+  var s=dailyState(),c=s.done?dpos(S.streak):dpos(s.n)-1,base=dbase();
+  var h='<div class="card">Серія: <b>'+S.streak+' дн.</b> Забрано в цьому колі: <b>'+c+' / 30</b><div class="bar"><i style="width:'+(c/30*100)+'%"></i></div><small class="pv">Пропущений день скидає серію</small></div>';
+  for(var d=1;d<=30;d++){
+    var done=d<=c,next=!s.done&&d===c+1;
+    h+='<div class="ach'+(done?" done":"")+(next?" next":"")+'"><div class="at"><b>'+(done?"✅ ":DP[d]?"⭐ ":"")+'День '+d+'</b><small>×'+DR[d-1]+' бонусу: +'+fmt(base*DR[d-1])+' дронів'+(DP[d]?" і "+DP[d]+" пат.":"")+'</small></div></div>';
+  }
+  $("dlist").innerHTML=h;
+}
 function dkey(t){var d=new Date(t);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 function dailyState(){var today=dkey(Date.now());if(S.dayLast===today)return{done:1};return{done:0,n:S.dayLast===dkey(Date.now()-864e5)?S.streak+1:1}}
 function renderDaily(){
   var s=dailyState(),b=$("daily");
   b.disabled=!!s.done;
-  b.textContent=s.done?"🎁 Бонус отримано. Серія: "+S.streak+" дн. Приходьте завтра":"🎁 Щоденний бонус: день "+s.n;
+  b.textContent=s.done?"🎁 Бонус отримано. Серія: "+S.streak+" дн. Приходьте завтра":"🎁 Щоденний бонус: день "+dpos(s.n);
 }
 $("daily").onclick=function(){
   var s=dailyState();if(s.done)return;
   S.streak=s.n;S.dayLast=dkey(Date.now());
-  var r=(100+cps()*600)*Math.min(S.streak,10);S.d+=r;S.run+=r;S.all+=r;
-  var m="🎁 +"+fmt(r)+" дронів";if(S.streak%7===0){S.pat++;m+=" і 1 патент"}
-  toast(m);check();render();save();
+  var p=dpos(S.streak),r=dbase()*DR[p-1];S.d+=r;S.run+=r;S.all+=r;
+  var m="🎁 +"+fmt(r)+" дронів (день "+p+")";if(DP[p]){S.pat+=DP[p];m+=" і "+DP[p]+" пат."}
+  toast(m);check();render();renderDlist();save();
 };
 // рейтинг: вкажіть адресу свого сервера, напр. https://my-leaderboard.example.workers.dev
 var LB_URL="https://firepoint-lb.7zfalsh.workers.dev";
