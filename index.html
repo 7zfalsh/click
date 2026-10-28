@@ -198,13 +198,13 @@ function bmult(i){var m=1;for(var k=0;k<3;k++)if(S.up["b"+i+"_"+k])m*=2;return m
 var GN=[["Державне замовлення",1e5],["Міжнародні партнери",1e7],["Експортні контракти",1e9],["Технологічний прорив",1e11]];
 function gmult(){var m=1;GN.forEach(function(g,i){if(S.up["g"+i])m*=1.15});return m}
 function achCount(){return Object.keys(S.ach).length}
-var TP=[["p1",1.1],["p2",1.15],["p3",1.25],["p4",1.5]];
+var TP=[["p1",1.1],["p2",1.15],["p3",1.25],["p4",1.5],["p5",1.75],["p6",2],["p7",2.5]];
 function tmult(){var m=1;TP.forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
 function bm(){return S.tech.g3?10:7}
 function mult(){return(1+0.01*achCount())*(1+0.02*S.con)*gmult()*tmult()*(Date.now()<buffUntil?bm():1)}
 function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
 function perTap(){var k=1;for(var i=0;i<6;i++)if(S.up["t"+i])k*=2;return k*mult()+((S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
-function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
+function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9],["c5",0.9],["c6",0.9],["c7",0.85]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
 function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*cmul()*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
 
 // покращення
@@ -238,22 +238,31 @@ B.forEach(function(b,i){[1,10,50].forEach(function(n){
   ach("s"+i,"Потужність",["Автоматизація","Потік","Конвеєр без зупинки","Індустріальна потужність"][i],"Досягти виробництва, дронів/с: "+fmt(t),function(){return cps()},t)});
 [3,7,30].forEach(function(t,i){
   ach("d"+i,"Щоденний бонус",["Три дні поспіль","Тиждень на зміні","Місяць без пропусків"][i],"Серія щоденних бонусів: "+t,function(){return S.streak},t)});
-[1,6,12].forEach(function(t,i){
-  ach("t"+i,"Технології",["Перший патент","Інженерна думка","Дерево повністю"][i],"Відкрити технологій: "+t,function(){return Object.keys(S.tech).length},t)});
+[1,6,12,21].forEach(function(t,i){
+  ach("t"+i,"Технології",["Перший патент","Інженерна думка","Дерево повністю","Наукова держава"][i],"Відкрити технологій: "+t,function(){return Object.keys(S.tech).length},t)});
 // дерево технологій: id, іконка, гілка, назва, опис, ціна в патентах, потрібна технологія
 var T=[
 ["p1","⚙️","Виробництво","Оптимізація логістики","+10% до виробництва",1,""],
 ["p2","📦","Виробництво","Бережливе виробництво","+15% до виробництва",3,"p1"],
 ["p3","🤖","Виробництво","Автоматизація 2.0","+25% до виробництва",8,"p2"],
 ["p4","🔗","Виробництво","Промисловий синергізм","+50% до виробництва",20,"p3"],
+["p5","🛰️","Виробництво","Глобальні поставки","+75% до виробництва",40,"p4"],
+["p6","🔭","Виробництво","Квантовий контроль якості","×2 до виробництва",80,"p5"],
+["p7","🦾","Виробництво","Епоха автоматів","×2,5 до виробництва",160,"p6"],
 ["c1","💰","Економіка","Оптові закупівлі","Цехи дешевші на 5%",1,""],
 ["c2","🧱","Економіка","Власні матеріали","Цехи дешевші ще на 5%",4,"c1"],
 ["c3","🏛️","Економіка","Державна програма","Цехи дешевші ще на 10%",10,"c2"],
 ["c4","🏗️","Економіка","Вертикальна інтеграція","Цехи дешевші ще на 10%",25,"c3"],
+["c5","📜","Економіка","Прямі контракти","Цехи дешевші ще на 10%",50,"c4"],
+["c6","⚡","Економіка","Власна енергетика","Цехи дешевші ще на 10%",100,"c5"],
+["c7","📈","Економіка","Економія масштабу","Цехи дешевші ще на 15%",200,"c6"],
 ["g1","📡","Бонуси і час","Радар","Золоті дрони з’являються частіше",2,""],
 ["g2","🌙","Бонуси і час","Нічні зміни","Дохід без вас до 8 годин замість 2",3,"g1"],
 ["g3","💎","Бонуси і час","Щедрі замовлення","Золотий дрон: ×10 на 45 с замість ×7 на 30 с",8,"g2"],
-["g4","🏦","Бонуси і час","Стартовий капітал","Після контрактів починаєте з 50 тис дронів",15,"g3"]
+["g4","🏦","Бонуси і час","Стартовий капітал","Після контрактів починаєте з 50 тис дронів",15,"g3"],
+["g5","📡","Бонуси і час","Далекобійний радар","Золоті дрони з’являються ще частіше",40,"g4"],
+["g6","⏱️","Бонуси і час","Подовжений бонус","Золотий дрон дає множник на 60 с",90,"g5"],
+["g7","🌃","Бонуси і час","Цілодобові зміни","Дохід без вас до 24 годин",180,"g6"]
 ];
 var TM={};T.forEach(function(t){TM[t[0]]=t});
 function check(){A.forEach(function(a){if(!S.ach[a.id]&&a.get()>=a.t){S.ach[a.id]=1;toast("🏆 "+a.name)}})}
@@ -445,7 +454,7 @@ tap.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.pr
 
 // золотий дрон
 var gold=$("gold"),gt,gs;
-function sched(){clearTimeout(gs);gs=setTimeout(spawn,(45+Math.random()*75)*1000*(S.tech.g1?0.7:1))}
+function sched(){clearTimeout(gs);gs=setTimeout(spawn,(45+Math.random()*75)*1000*(S.tech.g1?0.7:1)*(S.tech.g5?0.7:1))}
 function spawn(){
   if(document.hidden||view!=="game"){sched();return}
   gold.style.left=(5+Math.random()*75)+"%";gold.style.top=(2+Math.random()*75)+"%";gold.hidden=false;
@@ -453,13 +462,13 @@ function spawn(){
 }
 gold.onclick=function(){
   gold.hidden=true;clearTimeout(gt);sched();S.gold++;hap();
-  if(Math.random()<0.6){var bt=S.tech.g3?45:30;buffUntil=Date.now()+bt*1000;toast("Золотий дрон: ×"+bm()+" до виробництва на "+bt+" с!")}
+  if(Math.random()<0.6){var bt=S.tech.g6?60:S.tech.g3?45:30;buffUntil=Date.now()+bt*1000;toast("Золотий дрон: ×"+bm()+" до виробництва на "+bt+" с!")}
   else{var g=cps()*900+perTap()*13;S.d+=g;S.run+=g;S.all+=g;toast("Терміновий контракт: +"+fmt(g)+" дронів")}
   check();render();save();
 };
 
 // цикл
-var off=Math.min((Date.now()-(S.t||Date.now()))/1000,S.tech.g2?28800:7200)*cps();
+var off=Math.min((Date.now()-(S.t||Date.now()))/1000,S.tech.g7?86400:S.tech.g2?28800:7200)*cps();
 if(off>=1){S.d+=off;S.run+=off;S.all+=off;toast("Поки вас не було: +"+fmt(off)+" дронів")}
 var last=Date.now();
 setInterval(function(){
