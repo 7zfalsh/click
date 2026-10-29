@@ -85,6 +85,7 @@ h2,h3{font-size:16px;margin:14px 0 8px}
   padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:90%;text-align:center;z-index:5}
 .up.own{border-color:var(--ok)}
 .ach.next{border-color:var(--accent)}
+input[type=range]{padding:0;border:0;background:none;accent-color:var(--accent)}
 input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.pop,#gold,#tap.fly .bl{animation:none}#tap{transition:none}}
 </style>
@@ -94,7 +95,7 @@ input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:
   <div class="top">
     <div class="brand">Fire Point</div>
     <p class="score" id="score">0</p>
-    <p class="sub"><span id="cps">0</span> дронів/с · <span id="cpt">1</span> за тап</p>
+    <p class="sub" id="subline"><span id="cps">0</span> дронів/с · <span id="cpt">1</span> за тап</p>
     <p id="buff"></p>
   </div>
   <div class="tabs" role="tablist">
@@ -143,6 +144,7 @@ input{font:inherit;-webkit-user-select:text;user-select:text;width:100%;padding:
     <div id="dlist" style="margin-top:12px"></div>
   </section>
   <section id="v-tech" hidden></section>
+  <section id="v-set" hidden></section>
   <section id="v-lb" hidden><div id="lbc"></div><button class="btn" id="reset" style="margin-top:24px;background:var(--line);color:var(--ink)">⚠️ Повне скидання прогресу</button></section>
 
   <section id="v-pres" hidden>
@@ -175,7 +177,7 @@ try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof
 S.tech=S.tech||{};S.pat=S.pat||0;S.streak=S.streak||0;S.dayLast=S.dayLast||"";S.best=S.best||[];S.nick=S.nick||"";
 var migrated=0;
 if(S.v!==2){var had=S.taps>0||S.all>0,kp={nick:S.nick,streak:S.streak,dayLast:S.dayLast};S={d:0,run:0,all:0,taps:0,own:{},up:{},ach:{},gold:0,pres:0,con:0,t:Date.now(),tech:{},pat:0,streak:kp.streak,dayLast:kp.dayLast,best:[],nick:kp.nick,v:2};migrated=had?1:0}
-var VIEWS=["game","ach","pres","daily","tech","lb"];
+var VIEWS=["game","ach","pres","daily","tech","lb","set"];
 var buffUntil=0,amt=1,view="game";
 
 // назва, іконка, базова ціна, дронів/с
@@ -207,7 +209,7 @@ var XN=40;
 function bm(){return S.tech.g3?10:7}
 function mult(){return(1+0.005*achCount())*(1+0.01*S.con)*gmult()*tmult()*(Date.now()<buffUntil?bm():1)}
 function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
-function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;return k*mult()+(0.25+(S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
+function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;var fr=(S.up.f0?0.01:0)+(S.up.f1?0.02:0),pc=S.tapMode==="std"?0:(S.tapPct==null?25:S.tapPct)/100;return k*mult()+(pc+fr)*cps()}
 function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9],["c5",0.9],["c6",0.9],["c7",0.85]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
 function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*cmul()*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
 
@@ -341,10 +343,10 @@ function renderPres(){
 }
 function show(v){
   view=v;
-  VIEWS.forEach(function(n){$("v-"+n).hidden=n!==v;$("tab-"+n).setAttribute("aria-selected",n===v)});
-  if(v==="ach")renderAch();if(v==="pres")renderPres();if(v==="tech")renderTech();if(v==="daily")renderDlist();if(v==="lb")renderLb();
+  VIEWS.forEach(function(n){$("v-"+n).hidden=n!==v;var tb=$("tab-"+n);if(tb)tb.setAttribute("aria-selected",n===v)});
+  if(v==="ach")renderAch();if(v==="pres")renderPres();if(v==="tech")renderTech();if(v==="daily")renderDlist();if(v==="set")renderSet();if(v==="lb")renderLb();
 }
-VIEWS.forEach(function(n){$("tab-"+n).onclick=function(){show(n)}});
+VIEWS.forEach(function(n){var b=$("tab-"+n);if(b)b.onclick=function(){show(n)}});
 
 // технології
 // купити все доступне
@@ -447,6 +449,33 @@ armed($("reset"),"Точно скинути все? Натисніть ще ра
 });
 
 // тап
+// приховані налаштування тапа (10 с утримання на рядку дронів/с)
+function renderSet(){
+  var std=S.tapMode==="std",p=S.tapPct==null?25:S.tapPct;
+  var h='<div class="card"><p><b>Налаштування тапа</b></p><p class="sub">Приховане меню. Оберіть, скільки дронів дає один тап.</p></div>';
+  h+='<div class="amt"><button data-m="std" aria-pressed="'+std+'">Стандартний</button><button data-m="pct" aria-pressed="'+!std+'">% від дронів/с</button></div>';
+  h+='<div class="card"><div class="row"><span>Відсоток</span><b id="sp-val">'+p+'%</b></div><input type="range" id="sp-rng" min="1" max="100" value="'+p+'"'+(std?' disabled':'')+'></div>';
+  h+='<div class="amt">'+[25,50,75,100].map(function(x){return'<button data-p="'+x+'" aria-pressed="'+(!std&&p===x)+'">'+x+'%</button>'}).join("")+'</div>';
+  h+='<div class="card"><div class="row"><span>Один тап зараз дає</span><b id="sp-tap">'+fmt(perTap(),1)+'</b></div></div><button class="btn" id="sp-back">Назад до гри</button>';
+  $("v-set").innerHTML=h;
+}
+$("v-set").onclick=function(e){
+  if(e.target.closest("#sp-back")){show("game");return}
+  var m=e.target.closest("button[data-m]"),q=e.target.closest("button[data-p]");
+  if(m){S.tapMode=m.dataset.m;save();renderSet();return}
+  if(q){S.tapMode="pct";S.tapPct=+q.dataset.p;save();renderSet()}
+};
+$("v-set").oninput=function(e){
+  if(e.target.id!=="sp-rng")return;
+  S.tapMode="pct";S.tapPct=+e.target.value;
+  $("sp-val").textContent=S.tapPct+"%";$("sp-tap").textContent=fmt(perTap(),1);
+};
+$("v-set").onchange=function(e){if(e.target.id==="sp-rng"){save();renderSet()}};
+var sl=$("subline"),ht;
+sl.addEventListener("pointerdown",function(){clearTimeout(ht);ht=setTimeout(function(){hap();toast("🔓 Приховані налаштування");show("set")},10000)});
+["pointerup","pointerleave","pointercancel"].forEach(function(t){sl.addEventListener(t,function(){clearTimeout(ht)})});
+sl.addEventListener("contextmenu",function(e){e.preventDefault()});
+
 var tap=$("tap"),stage=$("stage"),fl;
 function doTap(x,y){
   var v=perTap();S.d+=v;S.run+=v;S.all+=v;S.taps++;
