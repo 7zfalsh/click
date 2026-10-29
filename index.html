@@ -207,7 +207,7 @@ var XN=40;
 function bm(){return S.tech.g3?10:7}
 function mult(){return(1+0.005*achCount())*(1+0.01*S.con)*gmult()*tmult()*(Date.now()<buffUntil?bm():1)}
 function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
-function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;return k*mult()+(0.5+(S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
+function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;return k*mult()+(0.25+(S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
 function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9],["c5",0.9],["c6",0.9],["c7",0.85]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
 function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*cmul()*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
 
