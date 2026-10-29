@@ -187,7 +187,8 @@ var B=[
  ["Дослідна лабораторія","🔬",1e12,1e7],["Супутниковий зв’язок","🛰️",1.4e13,6.5e7],["Автономний полігон","🎯",1.7e14,4.3e8],
  ["Квантова фабрика","⚛️",2.1e15,2.9e9],["Орбітальна верф","🚀",2.6e16,2.1e10],["Місячна база","🌙",3.1e17,1.5e11],
  ["Фабрика часу","⏳",7.1e18,1.1e12],["Мультивсесвіт Fire Point","🌌",1.2e20,8.3e12],
- ["Нейромережа Fire Point","🧬",1.9e21,6.4e13],["Ви: головний інженер","👤",5.4e23,5.1e14]
+ ["Нейромережа Fire Point","🧬",1.9e21,6.4e13],["Ви: головний інженер","👤",5.4e23,5.1e14],
+ ["Бригада складальників","👷",50,0,0.005]
 ];
 var SU=["",
  " тис"," млн"," млрд"," трлн"," квдрлн"," квнтлн"," секст"," септ"," окт"," нон"," дец"];
@@ -207,14 +208,14 @@ var XN=40;
 function bm(){return S.tech.g3?10:7}
 function mult(){return(1+0.005*achCount())*(1+0.01*S.con)*gmult()*tmult()*(Date.now()<buffUntil?bm():1)}
 function cps(){var n=0;B.forEach(function(b,i){n+=b[3]*own(i)*bmult(i)});return n*mult()}
-function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;return k*mult()+((S.up.f0?0.01:0)+(S.up.f1?0.02:0))*cps()}
+function perTap(){var k=1;for(var i=0;i<10;i++)if(S.up["t"+i])k*=2;var tb=own(B.length-1)*bmult(B.length-1);return(k+tb)*mult()+((S.up.f0?0.01:0)+(S.up.f1?0.02:0)+tb*B[B.length-1][4])*cps()}
 function cmul(){var m=1;[["c1",0.95],["c2",0.95],["c3",0.9],["c4",0.9],["c5",0.9],["c6",0.9],["c7",0.85]].forEach(function(x){if(S.tech[x[0]])m*=x[1]});return m}
 function costN(i,k){var r=1.15;return Math.ceil(B[i][2]*cmul()*Math.pow(r,own(i))*(Math.pow(r,k)-1)/(r-1))}
 
 // покращення
 var U=[],UI={},rom=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI"],th=[1,5,25,50,100,150,200,250,300,350,400],cm=[10,50,500,5e4,5e6,5e8,5e10,5e12,5e14,5e16,5e18];
 B.forEach(function(b,i){th.forEach(function(n,k){
-  U.push({id:"b"+i+"_"+k,ic:b[1],name:b[0]+": оптимізація "+rom[k],desc:"×2 до виробництва цеху «"+b[0]+"»",cost:b[2]*cm[k],req:function(){return own(i)>=n}});
+  U.push({id:"b"+i+"_"+k,ic:b[1],name:b[0]+": оптимізація "+rom[k],desc:b[4]?"×2 до бонусу за тап від «"+b[0]+"»":"×2 до виробництва цеху «"+b[0]+"»",cost:b[2]*cm[k],req:function(){return own(i)>=n}});
 });});
 [["Міцніший паяльник",100,10],["Магнітна викрутка",500,50],["Ергономічний пінцет",1e4,200],["Лазерне маркування",1e5,1000],["Автоматичний прес",1e7,5000],["Гіперфокус",1e9,20000],["Сталева хватка",1e10,1e5],["Нейрокерування",1e13,3e5],["Біонічні пальці",1e16,1e6],["Квантовий дотик",1e19,3e6]]
 .forEach(function(t,i){U.push({id:"t"+i,ic:"👆",name:t[0],desc:"×2 за тап",cost:t[1],req:function(){return S.taps>=t[2]}})});
@@ -281,7 +282,7 @@ function gain(){return Math.max(0,Math.floor(Math.cbrt(S.all/1e12))-S.con)}
 
 var bl=$("bl"),brow=[];
 B.forEach(function(b,i){
-  var el=document.createElement("button");el.className="up";el.dataset.b=i;
+  var el=document.createElement("button");el.className="up";el.dataset.b=i;if(i===B.length-1)el.style.order=-1;
   el.innerHTML='<span class="ic">'+b[1]+'</span><span><b>'+b[0]+' <span class="n"></span></b><small></small></span><span class="cost"></span>';
   bl.appendChild(el);brow.push(el);
 });
@@ -319,7 +320,7 @@ function render(){
     el.disabled=S.d<c;
     el.querySelector(".cost").textContent=fmt(c);
     el.querySelector(".n").textContent=own(i)?"×"+own(i):"";
-    el.querySelector("small").textContent="+"+fmt(b[3]*bmult(i)*m,1)+" дронів/с кожен";
+    el.querySelector("small").textContent=b[4]?"кожна: +1 за тап і +"+fmt(b[4]*bmult(i)*100,1)+"% від дронів/с за тап":"+"+fmt(b[3]*bmult(i)*m,1)+" дронів/с кожен";
   });
   renderUps();
   if(view==="pres")renderPres();
